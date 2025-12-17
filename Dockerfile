@@ -54,8 +54,8 @@ RUN a2enmod rewrite
 
 USER www-data
 
-# Dependências do Laravel
-RUN composer install --no-interaction
+# Dependências do Laravel (sem dev para produção)
+RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 
 USER root
