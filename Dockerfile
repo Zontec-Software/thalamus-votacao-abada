@@ -1,43 +1,74 @@
-FROM php:8.1-apache
+FROM php:8.2-apache
 
-# Instalar dependências do sistema
+# Diretório de trabalho
+WORKDIR /var/www/html/
+
+# Copia o projeto
+COPY . /var/www/html/
+
+# Usuário root para instalar pacotes e ajustar permissões
+USER root
+
+# Instale certificados SSL
+RUN apt-get install -y ca-certificates
+
+# Permissões
+RUN chown -R www-data:www-data /var/www/html/
+
+# Configs do Apache e PHP
+COPY ./docker/apache2/ /etc/apache2/
+COPY ./docker/php/conf.d/ /usr/local/etc/php/conf.d/
+
+# Instala dependências e extensões PHP
 RUN apt-get update && apt-get install -y \
-    git \
-    curl \
+    libfreetype6-dev \
+    libjpeg62-turbo-dev \
     libpng-dev \
-    libonig-dev \
-    libxml2-dev \
+    libzip-dev \
     zip \
+    openssl \
     unzip \
-    && docker-php-ext-install pdo_mysql mbstring exif pcntl bcmath gd \
-    && apt-get clean && rm -rf /var/lib/apt/lists/*
+    git \
+    supervisor \
+ && docker-php-ext-configure gd --with-freetype --with-jpeg \
+ && docker-php-ext-install -j"$(nproc)" \
+    pdo_mysql \
+    gd \
+    zip \
+    sockets \
+    bcmath \
+ && rm -rf /var/lib/apt/lists/*
 
-# Instalar Composer
-COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
+#RUN apt-get install -y mysql-client
 
-# Habilitar mod_rewrite do Apache
+# OpCache otimizado
+# COPY ./docker/php/conf.d/opcache.ini /usr/local/etc/php/conf.d/opcache.ini
+
+COPY ./docker/ssl/certs /etc/ssl/certs
+
+# Composer
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+
+# mod_rewrite
 RUN a2enmod rewrite
 
-# Configurar diretório de trabalho
-WORKDIR /var/www/html
+USER www-data
 
-# Copiar arquivos do projeto
-COPY . /var/www/html
+# Dependências do Laravel
+RUN composer install --no-interaction
 
-# Instalar dependências do Composer (sem dev)
-RUN composer install --no-dev --optimize-autoloader --no-interaction
 
-# Configurar permissões
-RUN chown -R www-data:www-data /var/www/html \
-    && chmod -R 755 /var/www/html/storage \
-    && chmod -R 755 /var/www/html/bootstrap/cache
+USER root
 
-# Configurar Apache para usar o diretório public
-RUN sed -i 's|/var/www/html|/var/www/html/public|g' /etc/apache2/sites-available/000-default.conf
+# Supervisor: cria diretórios de runtime e log
+RUN mkdir -p /var/log/supervisor /var/run \
+ && chown -R www-data:www-data /var/log/supervisor
 
-# Expor porta 80
+# Copia a configuração do Supervisor
+COPY ./docker/supervisor/supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Porta HTTP
 EXPOSE 80
 
-# Comando padrão
-CMD ["apache2-foreground"]
-
+# Inicia o Supervisor (que inicia Apache + queue worker)
+CMD ["/usr/bin/supervisord"]
