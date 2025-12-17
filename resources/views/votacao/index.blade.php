@@ -9,16 +9,21 @@
 
     <div id="alert-container"></div>
 
-    @if(count($funcionarios) > 0)
+    @if (session('error'))
+        <div class="alert alert-error" style="margin: 20px 0; padding: 15px; background: #fee; border: 1px solid #fcc; border-radius: 5px; color: #c33;">
+            {{ session('error') }}
+        </div>
+    @endif
+
+    <div id="horario-info" style="margin: 20px 0; padding: 15px; background: #fff3cd; border: 1px solid #ffc107; border-radius: 5px; color: #856404; display: none;">
+        <strong>⏰ Horário de Votação:</strong> A votação está disponível apenas das <strong>20:00 às 23:59</strong>.
+    </div>
+
+    @if (count($funcionarios) > 0)
         <div class="funcionarios-grid">
-            @foreach($funcionarios as $funcionario)
-                <div class="funcionario-card" 
-                     data-id="{{ $funcionario['id'] }}" 
-                     data-nome="{{ $funcionario['nomeCompleto'] }}">
-                    <img src="https://api.thalamus.ind.br/storage/{{ $funcionario['path_image'] }}" 
-                         alt="{{ $funcionario['nomeCompleto'] }}" 
-                         class="funcionario-thumb"
-                         onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27150%27 height=%27150%27%3E%3Crect fill=%27%23ddd%27 width=%27150%27 height=%27150%27/%3E%3Ctext fill=%27%23999%27 font-family=%27sans-serif%27 font-size=%2714%27 x=%2750%25%27 y=%2750%25%27 text-anchor=%27middle%27 dy=%27.3em%27%3ESem Foto%3C/text%3E%3C/svg%3E'">
+            @foreach ($funcionarios as $funcionario)
+                <div class="funcionario-card" data-id="{{ $funcionario['id'] }}" data-nome="{{ $funcionario['nomeCompleto'] }}">
+                    <img src="https://api.thalamus.ind.br/storage/{{ $funcionario['path_image'] }}" alt="{{ $funcionario['nomeCompleto'] }}" class="funcionario-thumb" onerror="this.src='data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 width=%27150%27 height=%27150%27%3E%3Crect fill=%27%23ddd%27 width=%27150%27 height=%27150%27/%3E%3Ctext fill=%27%23999%27 font-family=%27sans-serif%27 font-size=%2714%27 x=%2750%25%27 y=%2750%25%27 text-anchor=%27middle%27 dy=%27.3em%27%3ESem Foto%3C/text%3E%3C/svg%3E'">
                     <div class="funcionario-nome">{{ $funcionario['nomeCompleto'] }}</div>
                 </div>
             @endforeach
@@ -42,152 +47,193 @@
 @endsection
 
 @section('scripts')
-<script>
-    let macAddress = '';
-    let pessoaSelecionada = null;
+    <script>
+        let macAddress = '';
+        let pessoaSelecionada = null;
 
-    // Função para obter MAC address (tentativa)
-    async function obterMacAddress() {
-        // Em navegadores web, não é possível obter o MAC address diretamente
-        // Vamos usar uma combinação de informações do navegador como identificador único
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d');
-        ctx.textBaseline = 'top';
-        ctx.font = '14px Arial';
-        ctx.fillText('MAC', 2, 2);
-        
-        const fingerprint = [
-            navigator.userAgent,
-            navigator.language,
-            screen.width + 'x' + screen.height,
-            new Date().getTimezoneOffset(),
-            canvas.toDataURL()
-        ].join('|');
+        // Função para verificar se está no horário de votação (20:00 - 23:59)
+        function estaNoHorarioVotacao() {
+            const now = new Date();
+            const horaAtual = now.getHours();
+            const minutoAtual = now.getMinutes();
 
-        // Criar hash simples do fingerprint
-        let hash = 0;
-        for (let i = 0; i < fingerprint.length; i++) {
-            const char = fingerprint.charCodeAt(i);
-            hash = ((hash << 5) - hash) + char;
-            hash = hash & hash;
-        }
-        
-        // Usar localStorage para persistir o identificador
-        const storedMac = localStorage.getItem('device_mac');
-        if (storedMac) {
-            return storedMac;
-        }
-        
-        const deviceId = 'device_' + Math.abs(hash).toString(36);
-        localStorage.setItem('device_mac', deviceId);
-        return deviceId;
-    }
-
-    // Inicializar MAC address ao carregar a página
-    obterMacAddress().then(mac => {
-        macAddress = mac;
-    }).catch(err => {
-        console.error('Erro ao obter MAC address:', err);
-        // Criar um MAC address de fallback
-        macAddress = 'device_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-        localStorage.setItem('device_mac', macAddress);
-    });
-
-    // Event listeners para os cards de funcionários
-    document.addEventListener('DOMContentLoaded', function() {
-        document.querySelectorAll('.funcionario-card').forEach(card => {
-            card.addEventListener('click', async function() {
-                // Garantir que o MAC address está disponível
-                if (!macAddress) {
-                    macAddress = await obterMacAddress();
-                }
-                
-                const id = this.dataset.id;
-                const nome = this.dataset.nome;
-                
-                pessoaSelecionada = { id, nome };
-                
-                document.getElementById('modalTexto').textContent = 
-                    `Você confirma a escolha de ${nome} como melhor abadá da festa?`;
-                document.getElementById('modalConfirmacao').classList.add('active');
-            });
-        });
-    });
-
-    // Botão Cancelar
-    document.getElementById('btnCancelar').addEventListener('click', function() {
-        document.getElementById('modalConfirmacao').classList.remove('active');
-        pessoaSelecionada = null;
-    });
-
-    // Botão Confirmar
-    document.getElementById('btnConfirmar').addEventListener('click', async function() {
-        if (!pessoaSelecionada || !macAddress) {
-            mostrarAlerta('Erro ao processar voto. Por favor, recarregue a página.', 'error');
-            return;
+            // Horário permitido: 20:00 até 23:59
+            return horaAtual >= 20 && horaAtual <= 23;
         }
 
-        this.disabled = true;
-        this.textContent = 'Processando...';
+        // Verificar horário ao carregar a página
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!estaNoHorarioVotacao()) {
+                // Mostrar mensagem de horário
+                document.getElementById('horario-info').style.display = 'block';
 
-        try {
-            const response = await fetch('{{ route("votacao.votar") }}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                },
-                body: JSON.stringify({
-                    pessoa_id: pessoaSelecionada.id,
-                    nome_completo: pessoaSelecionada.nome,
-                    mac_address: macAddress
-                })
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                mostrarAlerta('Voto registrado com sucesso! Obrigado por participar.', 'success');
-                document.getElementById('modalConfirmacao').classList.remove('active');
-                
-                // Desabilitar todos os cards após votar
+                // Desabilitar todos os cards
                 document.querySelectorAll('.funcionario-card').forEach(card => {
                     card.style.opacity = '0.5';
                     card.style.pointerEvents = 'none';
+                    card.style.cursor = 'not-allowed';
                 });
-            } else {
-                mostrarAlerta(data.message || 'Erro ao registrar voto. Tente novamente.', 'error');
-                document.getElementById('modalConfirmacao').classList.remove('active');
             }
-        } catch (error) {
-            mostrarAlerta('Erro ao conectar com o servidor. Verifique sua conexão.', 'error');
+        });
+
+        // Função para obter MAC address (tentativa)
+        async function obterMacAddress() {
+            // Em navegadores web, não é possível obter o MAC address diretamente
+            // Vamos usar uma combinação de informações do navegador como identificador único
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            ctx.textBaseline = 'top';
+            ctx.font = '14px Arial';
+            ctx.fillText('MAC', 2, 2);
+
+            const fingerprint = [
+                navigator.userAgent,
+                navigator.language,
+                screen.width + 'x' + screen.height,
+                new Date().getTimezoneOffset(),
+                canvas.toDataURL()
+            ].join('|');
+
+            // Criar hash simples do fingerprint
+            let hash = 0;
+            for (let i = 0; i < fingerprint.length; i++) {
+                const char = fingerprint.charCodeAt(i);
+                hash = ((hash << 5) - hash) + char;
+                hash = hash & hash;
+            }
+
+            // Usar localStorage para persistir o identificador
+            const storedMac = localStorage.getItem('device_mac');
+            if (storedMac) {
+                return storedMac;
+            }
+
+            const deviceId = 'device_' + Math.abs(hash).toString(36);
+            localStorage.setItem('device_mac', deviceId);
+            return deviceId;
+        }
+
+        // Inicializar MAC address ao carregar a página
+        obterMacAddress().then(mac => {
+            macAddress = mac;
+        }).catch(err => {
+            console.error('Erro ao obter MAC address:', err);
+            // Criar um MAC address de fallback
+            macAddress = 'device_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+            localStorage.setItem('device_mac', macAddress);
+        });
+
+        // Event listeners para os cards de funcionários
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.funcionario-card').forEach(card => {
+                card.addEventListener('click', async function() {
+                    // Verificar se está no horário de votação
+                    if (!estaNoHorarioVotacao()) {
+                        mostrarAlerta('A votação está disponível apenas das 20:00 às 23:59.', 'error');
+                        return;
+                    }
+
+                    // Garantir que o MAC address está disponível
+                    if (!macAddress) {
+                        macAddress = await obterMacAddress();
+                    }
+
+                    const id = this.dataset.id;
+                    const nome = this.dataset.nome;
+
+                    pessoaSelecionada = {
+                        id,
+                        nome
+                    };
+
+                    document.getElementById('modalTexto').textContent =
+                        `Você confirma a escolha de ${nome} como melhor abadá da festa?`;
+                    document.getElementById('modalConfirmacao').classList.add('active');
+                });
+            });
+        });
+
+        // Botão Cancelar
+        document.getElementById('btnCancelar').addEventListener('click', function() {
             document.getElementById('modalConfirmacao').classList.remove('active');
-        } finally {
-            this.disabled = false;
-            this.textContent = 'Sim';
-        }
-    });
-
-    function mostrarAlerta(mensagem, tipo) {
-        const alertContainer = document.getElementById('alert-container');
-        const alert = document.createElement('div');
-        alert.className = `alert alert-${tipo}`;
-        alert.textContent = mensagem;
-        alertContainer.innerHTML = '';
-        alertContainer.appendChild(alert);
-
-        setTimeout(() => {
-            alert.remove();
-        }, 5000);
-    }
-
-    // Fechar modal ao clicar fora
-    document.getElementById('modalConfirmacao').addEventListener('click', function(e) {
-        if (e.target === this) {
-            this.classList.remove('active');
             pessoaSelecionada = null;
-        }
-    });
-</script>
-@endsection
+        });
 
+        // Botão Confirmar
+        document.getElementById('btnConfirmar').addEventListener('click', async function() {
+            if (!pessoaSelecionada || !macAddress) {
+                mostrarAlerta('Erro ao processar voto. Por favor, recarregue a página.', 'error');
+                return;
+            }
+
+            this.disabled = true;
+            this.textContent = 'Processando...';
+
+            try {
+                const response = await fetch('{{ route('votacao.votar') }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    },
+                    body: JSON.stringify({
+                        pessoa_id: pessoaSelecionada.id,
+                        nome_completo: pessoaSelecionada.nome,
+                        mac_address: macAddress
+                    })
+                });
+
+                // Verificar se a resposta foi bloqueada (403)
+                if (response.status === 403) {
+                    const data = await response.json();
+                    mostrarAlerta(data.message || 'A votação está disponível apenas das 20:00 às 23:59.', 'error');
+                    document.getElementById('modalConfirmacao').classList.remove('active');
+                    return;
+                }
+
+                const data = await response.json();
+
+                if (data.success) {
+                    mostrarAlerta('Voto registrado com sucesso! Obrigado por participar.', 'success');
+                    document.getElementById('modalConfirmacao').classList.remove('active');
+
+                    // Desabilitar todos os cards após votar
+                    document.querySelectorAll('.funcionario-card').forEach(card => {
+                        card.style.opacity = '0.5';
+                        card.style.pointerEvents = 'none';
+                    });
+                } else {
+                    mostrarAlerta(data.message || 'Erro ao registrar voto. Tente novamente.', 'error');
+                    document.getElementById('modalConfirmacao').classList.remove('active');
+                }
+            } catch (error) {
+                mostrarAlerta('Erro ao conectar com o servidor. Verifique sua conexão.', 'error');
+                document.getElementById('modalConfirmacao').classList.remove('active');
+            } finally {
+                this.disabled = false;
+                this.textContent = 'Sim';
+            }
+        });
+
+        function mostrarAlerta(mensagem, tipo) {
+            const alertContainer = document.getElementById('alert-container');
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${tipo}`;
+            alert.textContent = mensagem;
+            alertContainer.innerHTML = '';
+            alertContainer.appendChild(alert);
+
+            setTimeout(() => {
+                alert.remove();
+            }, 5000);
+        }
+
+        // Fechar modal ao clicar fora
+        document.getElementById('modalConfirmacao').addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.classList.remove('active');
+                pessoaSelecionada = null;
+            }
+        });
+    </script>
+@endsection
