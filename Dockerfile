@@ -52,10 +52,21 @@ RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local
 # mod_rewrite
 RUN a2enmod rewrite
 
+# Cria diretórios necessários do Laravel e ajusta permissões
+RUN mkdir -p /var/www/html/bootstrap/cache \
+    && mkdir -p /var/www/html/storage/framework/cache \
+    && mkdir -p /var/www/html/storage/framework/sessions \
+    && mkdir -p /var/www/html/storage/framework/views \
+    && mkdir -p /var/www/html/storage/logs \
+    && chown -R www-data:www-data /var/www/html/bootstrap/cache \
+    && chown -R www-data:www-data /var/www/html/storage \
+    && chmod -R 775 /var/www/html/bootstrap/cache \
+    && chmod -R 775 /var/www/html/storage
+
 USER www-data
 
 # Dependências do Laravel (sem dev para produção)
-RUN composer install --no-interaction
+RUN composer install --no-dev --optimize-autoloader --no-interaction
 
 
 USER root
