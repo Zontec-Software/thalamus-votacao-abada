@@ -1,0 +1,81 @@
+==========================================
+COMO CONFIGURAR O MYSQL - PASSO A PASSO
+==========================================
+
+O erro indica que o usuário 'roboflex' não existe no MySQL.
+Você precisa criar o usuário e o banco de dados.
+
+OPÇÃO 1: Usando o script interativo (MAIS FÁCIL)
+--------------------------------------------------
+Execute:
+  ./configurar-mysql.sh
+
+O script pedirá a senha do root do MySQL e criará tudo automaticamente.
+
+
+OPÇÃO 2: Manualmente via MySQL (RECOMENDADO)
+---------------------------------------------
+1. Conecte-se ao MySQL como root:
+   mysql -u root -p
+   (Digite a senha do root quando solicitado)
+
+2. Execute estes comandos SQL (copie e cole):
+   
+   CREATE DATABASE IF NOT EXISTS votacao CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+   CREATE USER IF NOT EXISTS 'roboflex'@'localhost' IDENTIFIED BY 'Roboflex12@';
+   GRANT ALL PRIVILEGES ON votacao.* TO 'roboflex'@'localhost';
+   FLUSH PRIVILEGES;
+   exit;
+
+3. Teste a conexão:
+   php test-connection.php
+
+4. Execute as migrations:
+   php artisan migrate
+
+
+OPÇÃO 3: Se você já tem outro usuário MySQL
+--------------------------------------------
+Se você já tem um usuário MySQL configurado, edite o arquivo .env:
+
+1. Abra o arquivo:
+   nano .env
+
+2. Altere estas linhas com suas credenciais:
+   DB_USERNAME=seu_usuario_aqui
+   DB_PASSWORD=sua_senha_aqui
+
+3. Crie o banco de dados (se não existir):
+   mysql -u seu_usuario -p
+   CREATE DATABASE votacao CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+   exit;
+
+4. Execute as migrations:
+   php artisan migrate
+
+
+OPÇÃO 4: Usar SQLite temporariamente (para testes)
+---------------------------------------------------
+Se quiser testar a aplicação sem configurar MySQL:
+
+1. Edite o .env e altere:
+   DB_CONNECTION=sqlite
+   DB_DATABASE=/home/darley/votacao/database/database.sqlite
+
+2. Crie o arquivo do banco:
+   touch database/database.sqlite
+
+3. Execute as migrations:
+   php artisan migrate
+
+NOTA: Depois volte para MySQL para produção!
+
+
+VERIFICAÇÃO
+-----------
+Depois de configurar, teste com:
+  php verificar-mysql.php
+
+Ou teste diretamente:
+  mysql -u roboflex -p'Roboflex12@' -e "SHOW DATABASES;"
+

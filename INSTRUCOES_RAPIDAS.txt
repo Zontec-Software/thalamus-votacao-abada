@@ -1,0 +1,70 @@
+╔══════════════════════════════════════════════════════════════╗
+║  CONFIGURAÇÃO RÁPIDA DO MYSQL - 3 PASSOS SIMPLES            ║
+╚══════════════════════════════════════════════════════════════╝
+
+O erro acontece porque o usuário 'roboflex' não existe no MySQL.
+
+SOLUÇÃO RÁPIDA (escolha UMA opção):
+
+═══════════════════════════════════════════════════════════════
+OPÇÃO 1: Script Automático (MAIS FÁCIL)
+═══════════════════════════════════════════════════════════════
+
+Execute:
+  ./criar-mysql-simples.sh
+
+O script pedirá a senha do root do MySQL e criará tudo.
+
+
+═══════════════════════════════════════════════════════════════
+OPÇÃO 2: Arquivo SQL (RÁPIDO)
+═══════════════════════════════════════════════════════════════
+
+Execute:
+  mysql -u root -p < criar-usuario-mysql.sql
+
+Digite a senha do root quando solicitado.
+
+
+═══════════════════════════════════════════════════════════════
+OPÇÃO 3: Manual (CONTROLE TOTAL)
+═══════════════════════════════════════════════════════════════
+
+1. Conecte ao MySQL:
+   mysql -u root -p
+
+2. Cole e execute estes comandos:
+   
+   CREATE DATABASE IF NOT EXISTS votacao CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+   CREATE USER 'roboflex'@'localhost' IDENTIFIED BY 'Roboflex12@';
+   GRANT ALL PRIVILEGES ON votacao.* TO 'roboflex'@'localhost';
+   FLUSH PRIVILEGES;
+   exit;
+
+3. Teste:
+   php artisan migrate
+
+
+═══════════════════════════════════════════════════════════════
+DEPOIS DE CONFIGURAR
+═══════════════════════════════════════════════════════════════
+
+Execute as migrations:
+  php artisan migrate
+
+Inicie o servidor:
+  php artisan serve
+
+Acesse: http://localhost:8000
+
+
+═══════════════════════════════════════════════════════════════
+VERIFICAÇÃO
+═══════════════════════════════════════════════════════════════
+
+Teste se funcionou:
+  php verificar-mysql.php
+
+Ou teste diretamente:
+  mysql -u roboflex -p'Roboflex12@' -e "SHOW DATABASES;"
+

@@ -1,0 +1,26 @@
+==========================================
+COMO ADICIONAR A LOGO DA ROBOFLEX
+==========================================
+
+1. Coloque o arquivo da logo neste diretório (public/images/)
+
+2. Nomeie o arquivo como: logo.png, logo.svg, logo.jpg ou logo.jpeg
+
+3. Formatos suportados:
+   - PNG (recomendado para logos com transparência)
+   - SVG (recomendado para qualidade vetorial)
+   - JPG/JPEG (para fotos)
+
+4. Tamanho recomendado:
+   - Largura máxima: 200px
+   - Altura: proporcional
+   - Resolução: 72-150 DPI para web
+
+5. A logo aparecerá automaticamente no cabeçalho de todas as páginas
+
+6. Se a logo não aparecer:
+   - Verifique se o arquivo está em public/images/
+   - Verifique se o nome do arquivo está correto (logo.png, etc)
+   - Limpe o cache: php artisan cache:clear
+
+==========================================
