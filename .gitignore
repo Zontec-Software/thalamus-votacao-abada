@@ -16,3 +16,26 @@ yarn-error.log
 /.idea
 /.vscode
 
+# Arquivos específicos do projeto
+database/database.sqlite
+database/database.sqlite-journal
+storage/framework/sessions/*
+storage/framework/views/*
+storage/logs/*
+!storage/framework/sessions/.gitignore
+!storage/framework/views/.gitignore
+!storage/logs/.gitignore
+bootstrap/cache/*
+!bootstrap/cache/.gitignore
+
+# Scripts temporários
+test-connection.php
+verificar-mysql.php
+configurar-mysql.sh
+criar-mysql-simples.sh
+criar-usuario-mysql.sql
+setup-database.sql
+COMO_CONFIGURAR_MYSQL.txt
+INSTRUCOES_RAPIDAS.txt
+SETUP_MYSQL.md
+
